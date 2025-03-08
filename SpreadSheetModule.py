@@ -23,6 +23,23 @@ class SpreadSheet:
         ws = sh.worksheet('Sheet1')
         ws.clear()
 
+        # 列幅の調整
+        request = {
+            "requests": [{
+                "updateDimensionProperties": {
+                    "range": {
+                        "sheetId": ws.id,
+                        "dimension": "COLUMNS",
+                        "startIndex": 0,  # A列（0から開始）
+                        "endIndex": 1
+                    },
+                    "properties": {"pixelSize": 500},  # 500pxに固定
+                    "fields": "pixelSize"
+                }
+            }]
+        }
+        sh.batch_update(request)
+
         # データフレームのスプレッドシートへの書き込み
         ws.update(
             [data.columns.values.tolist()] + data.values.tolist()
