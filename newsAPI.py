@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 import SpreadSheetModule
+from trasnlateByDeepl import transtate_text
 
 def extract_source_name(source):
     """
@@ -10,7 +11,6 @@ def extract_source_name(source):
     if isinstance(source, dict) and 'name' in source:
         return source['name']
     return ""
-
 
 # NEWSAPIを呼び出す
 headers = {'X-Api-Key': 'd95ef705b35546239ca5ab40398a99b7'}
@@ -24,13 +24,22 @@ response = requests.get(url, headers=headers, params=params)
 # データを取得
 data = response.json()
 
-# データをDataFrame化して、整形 
+# 以下、データをDataFrame化して、整形 
 # APIの仕組みから、整形をしないとエラーになる（null、辞書型×）
 df = pd.DataFrame(data['articles'])
 # Noneを空文字化
 df.fillna("")
 #sourceカラムの辞書からnameを取り出し、文字列へ。
 df['source'] = df['source'].apply(extract_source_name)
+
+# titleのみ翻訳
+# リスト化
+title_list = df['title'].tolist()
+# 翻訳
+translated_title = transtate_text(title_list)
+# データフレームに格納
+df['title'] = pd.DataFrame(translated_title)
+
 # 特定の列のみを抽出
 df = df.loc[:, ['title', 'source', 'author', 'publishedAt', 'url']]
 
