@@ -1,10 +1,8 @@
-# 日経メディカルと時事メディカルにwebスクレイピングして、それを保存する処理を書く。
+# 日経メディカルをwebスクレイピングして、それを保存する処理を書く。
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import SpreadSheetModule
-
-# まず日経メディカルをwebスクレイピング
 
 # 日経メディカルへアクセス
 url = 'https://medical.nikkeibp.co.jp/inc/all/article/'
