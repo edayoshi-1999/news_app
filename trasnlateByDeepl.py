@@ -1,6 +1,10 @@
 import deepl
 import os
 import pandas as pd
+from dotenv import load_dotenv
+
+# .env ファイルを読み込む
+load_dotenv()
 
 # リスト型のデータを翻訳して、そのリストを返す。
 def transtate_text(data):
