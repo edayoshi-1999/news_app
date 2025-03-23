@@ -2,6 +2,11 @@ import requests
 import pandas as pd
 import SpreadSheetModule
 from trasnlateByDeepl import transtate_text
+import os
+from dotenv import load_dotenv
+
+# .env ファイルを読み込む
+load_dotenv()
 
 def extract_source_name(source):
     """
@@ -12,8 +17,9 @@ def extract_source_name(source):
         return source['name']
     return ""
 
+
 # NEWSAPIを呼び出す
-headers = {'X-Api-Key': 'd95ef705b35546239ca5ab40398a99b7'}
+headers = {'X-Api-Key': os.getenv("X_Api_Key")}
 url = 'https://newsapi.org/v2/everything'
 params = {
     'sortedBy': 'publishedAt',
