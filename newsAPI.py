@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
 import SpreadSheetModule
-from trasnlateByDeepl import transtate_text
+from trasnlateByDeepl import translate_text
 import os
 from dotenv import load_dotenv
 
@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # sourceフィールドから辞書内の'name'キーを取り出す関数
+# nameキーがないか、sourceが辞書でない場合は空文字を返す
 def extract_source_name(source):
     if isinstance(source, dict) and 'name' in source:
         return source['name']
@@ -29,14 +30,14 @@ def fetch_news_data():
 # APIで取得した記事データを整形する関数
 def clean_and_format_data(articles):
     df = pd.DataFrame(articles)              # 記事リストをDataFrameに変換
-    df.fillna("")                            # 欠損値を空文字に置換
+    df = df.fillna("")                            # 欠損値を空文字に置換
     df['source'] = df['source'].apply(extract_source_name)  # sourceフィールドから名前だけ取り出す
     return df
 
 # titleカラムだけを翻訳する関数
 def translate_titles(df):
     title_list = df['title'].tolist()        # タイトルをリスト化
-    translated_title = transtate_text(title_list)  # タイトルを翻訳
+    translated_title = translate_text(title_list)  # タイトルを翻訳
     df['title'] = pd.DataFrame(translated_title)  # 翻訳後のタイトルをDataFrameに反映
     return df
 

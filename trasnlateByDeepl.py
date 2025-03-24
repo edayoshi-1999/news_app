@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # リスト型のデータを翻訳して、そのリストを返す。
-def transtate_text(data):
+def translate_text(data):
     #環境変数からAPIキーを取得
     auth_key = os.getenv("DEEPL_AUTH_KEY")
     translator = deepl.Translator(auth_key)
