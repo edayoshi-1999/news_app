@@ -2,11 +2,10 @@ import unittest
 from unittest.mock import patch, MagicMock
 import pandas as pd
 from newsAPI import extract_source_name, clean_and_format_data, translate_titles, fetch_news_data, save_to_spreadsheet
+import requests
 
-
-# ニュース処理に関する各関数の単体テストを行うクラス
-class TestNewsAPI(unittest.TestCase):
-
+# extract_source_name関数のテスト
+class TestExtractSourceName(unittest.TestCase):
      # source辞書からnameを抽出する関数のテスト
     def test_extract_source_name(self):
         # 正常に'name'を取り出せるケース
@@ -16,6 +15,8 @@ class TestNewsAPI(unittest.TestCase):
         # 入力が辞書でない場合、例外を出さずに空文字が返る
         self.assertEqual(extract_source_name('not a dict'), '')
 
+# fetch_news_data関数のテスト
+class TestFetchNewsData(unittest.TestCase):
     # ニュースAPIからの取得処理のテスト（requests.getとos.getenvをモック）
     @patch('newsAPI.requests.get')
     @patch('newsAPI.os.getenv')
@@ -32,6 +33,31 @@ class TestNewsAPI(unittest.TestCase):
         # 正しくデータが取得されているか確認
         self.assertEqual(articles[0]['title'], 'Test')
 
+    # RequestException発生時に空リストを返すかのテスト
+    @patch('newsAPI.requests.get')
+    @patch('newsAPI.os.getenv')
+    def test_fetch_news_data_request_exception(self, mock_getenv, mock_get):
+        mock_getenv.return_value = 'dummy-key'
+        mock_get.side_effect = requests.exceptions.RequestException("接続エラー")
+
+        result = fetch_news_data()
+        self.assertEqual(result, [])  # 空リストが返ることを確認
+
+    # ValueError（JSONデコード失敗）時に空リストを返すかのテスト
+    @patch('newsAPI.requests.get')
+    @patch('newsAPI.os.getenv')
+    def test_fetch_news_data_json_decode_error(self, mock_getenv, mock_get):
+        mock_getenv.return_value = 'dummy-key'
+        mock_response = MagicMock()
+        mock_response.raise_for_status.return_value = None #raise_for_status は呼ばれても例外が出ないよう return_value = None にしておく
+        mock_response.json.side_effect = ValueError("JSON Decode Error")
+        mock_get.return_value = mock_response
+
+        result = fetch_news_data()
+        self.assertEqual(result, [])  # 空リストが返ることを確認
+
+# clean_and_format_data関数のテスト
+class TestCleanAndFormatData(unittest.TestCase):
     # APIで取得した記事データを整形する関数のテスト
     def test_clean_and_format_data(self):
         # 模擬データ（正常値と欠損値を含む）
@@ -53,6 +79,33 @@ class TestNewsAPI(unittest.TestCase):
         self.assertEqual(df.loc[2, 'source'], '')  # sourceがNoneの場合も空文字に変換されるか
         self.assertEqual(df.loc[3, 'source'], '')  # sourceが{}のときも空文字に変換されるか
 
+    # テストデータが空の場合のテスト
+    def test_clean_and_format_data_with_empty_list(self):
+        result = clean_and_format_data([])
+
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertTrue(result.empty)
+
+    # テストデータがNoneの場合のテスト
+    def test_clean_and_format_data_with_none(self):
+        result = clean_and_format_data(None)
+
+        self.assertIsInstance(result, pd.DataFrame)
+        self.assertTrue(result.empty)
+    
+    # 例外が発生した場合のテスト
+    def test_clean_and_format_data_with_exception(self):
+        # 非イテラブルなオブジェクトを渡して DataFrame 化で失敗させる
+        invalid_input = object()  # DataFrame に変換できない型
+
+        df = clean_and_format_data(invalid_input)
+
+        # 空のDataFrameが返ってくることを確認
+        self.assertIsInstance(df, pd.DataFrame)
+        self.assertTrue(df.empty)
+
+# translate_titles関数のテスト
+class TestTranslateTitles(unittest.TestCase):
     # タイトル翻訳処理のテスト（翻訳APIをモック）
     @patch('newsAPI.translate_text')
     def test_translate_titles(self, mock_translate_text):
@@ -64,6 +117,26 @@ class TestNewsAPI(unittest.TestCase):
         self.assertEqual(result_df.loc[0, 'title'], 'Translated Title 1')
         self.assertEqual(result_df.loc[1, 'title'], 'Translated Title 2')
 
+    # 'title' カラムが存在しないときの処理確認
+    def test_translate_titles_with_no_title_column(self):
+        df = pd.DataFrame({'not_title': ['No title here']})
+        result_df = translate_titles(df)
+        
+        # 元のDataFrameがそのまま返ってくる
+        self.assertTrue(result_df.equals(df))
+    
+    # translate_text() が例外を投げたときの処理確認
+    @patch('newsAPI.translate_text', side_effect=Exception("Translation error"))
+    def test_translate_titles_with_exception(self, mock_translate_text):
+        df = pd.DataFrame({'title': ['Title 1', 'Title 2']})
+        result_df = translate_titles(df)
+
+        # 例外が発生しても元のDataFrameが返ってくる
+        self.assertTrue(result_df.equals(df))
+
+
+# save_to_spreadsheet関数のテスト
+class TestSaveToSpreadsheet(unittest.TestCase):
     # スプレッドシートへの書き込み処理のテスト（SpreadSheetクラスをモック）
     @patch('SpreadSheetModule.SpreadSheet')
     def test_save_to_spreadsheet(self, mock_spreadsheet_class):
@@ -83,6 +156,37 @@ class TestNewsAPI(unittest.TestCase):
         save_to_spreadsheet(df)
         # writeSpreadSheet メソッドが1回呼ばれたことを検証
         mock_spreadsheet.writeSpreadSheet.assert_called_once()
+    
+    # 空のDataFrameが渡されたとき、処理をスキップするか確認
+    @patch('SpreadSheetModule.SpreadSheet')
+    def test_save_to_spreadsheet_with_empty_dataframe(self, mock_spreadsheet_class):
+        df = pd.DataFrame()  # 空のDataFrame
+
+        save_to_spreadsheet(df)
+
+        # writeSpreadSheet が呼ばれていないことを確認
+        mock_spreadsheet_class.return_value.writeSpreadSheet.assert_not_called()
+
+    # writeSpreadSheetが例外を投げたとき、エラーをキャッチしてクラッシュしないか確認
+    @patch('SpreadSheetModule.SpreadSheet')
+    def test_save_to_spreadsheet_with_exception(self, mock_spreadsheet_class):
+        mock_instance = MagicMock()
+        mock_instance.writeSpreadSheet.side_effect = Exception("書き込みエラー")
+        mock_spreadsheet_class.return_value = mock_instance
+
+        df = pd.DataFrame({
+            'title': ['Test Title'],
+            'source': ['Test Source'],
+            'author': ['Test Author'],
+            'publishedAt': ['2025-03-24'],
+            'url': ['http://example.com']
+        })
+
+        # クラッシュせずに実行されることを確認（例外はキャッチされる）
+        save_to_spreadsheet(df)
+
+        # writeSpreadSheet は呼ばれたが、内部でエラーが出る
+        mock_instance.writeSpreadSheet.assert_called_once()
 
 
 if __name__ == '__main__':

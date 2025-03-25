@@ -54,6 +54,7 @@ def clean_and_format_data(articles):
         return pd.DataFrame()
 
 
+
 # titleカラムだけを翻訳する関数
 def translate_titles(df):
     if 'title' not in df.columns:
@@ -87,10 +88,14 @@ def save_to_spreadsheet(df):
 
 # 処理のメイン関数
 def main():
-    try:    
+    try:
+        print(0)
         articles = fetch_news_data()             # APIから記事を取得
+        print(1)
         df = clean_and_format_data(articles)     # 整形
+        print(2)
         df = translate_titles(df)                # タイトルのみ翻訳
+        print(3)
         save_to_spreadsheet(df)                  # スプレッドシートに保存
     except Exception as e:
         print(f"[エラー] メイン処理中に問題が発生しました: {e}")
