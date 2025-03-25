@@ -5,7 +5,7 @@ from newsAPI import extract_source_name, clean_and_format_data, translate_titles
 
 
 # ニュース処理に関する各関数の単体テストを行うクラス
-class TestNewsFunctions(unittest.TestCase):
+class TestNewsAPI(unittest.TestCase):
 
      # source辞書からnameを抽出する関数のテスト
     def test_extract_source_name(self):
