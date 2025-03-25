@@ -22,6 +22,7 @@ def fetch_html(url):
         print(f"[エラー] HTML取得に失敗しました: {e}")
         return None
 
+
 def parse_articles(html):
     """HTMLから記事情報（タイトル・日付・URL）を抽出する"""
     if html is None:
@@ -49,6 +50,7 @@ def parse_articles(html):
     except Exception as e:
         print(f"[エラー] 記事情報の解析に失敗しました: {e}")
         return []
+    
 
 def save_to_spreadsheet(data, sheet_name='時事メディカル'):
     """記事データをスプレッドシートに保存する"""
@@ -64,11 +66,15 @@ def save_to_spreadsheet(data, sheet_name='時事メディカル'):
     except Exception as e:
         print(f"[エラー] スプレッドシートへの書き込みに失敗しました: {e}")
 
+
 def main():
     """メイン処理：スクレイピング → 整形 → 保存"""
-    html = fetch_html(URL)
-    articles = parse_articles(html)
-    save_to_spreadsheet(articles)
+    try:
+        html = fetch_html(URL)
+        articles = parse_articles(html)
+        save_to_spreadsheet(articles)
+    except Exception as e:
+        print(f"[エラー] メイン処理中に問題が発生しました: {e}")
 
 if __name__ == '__main__':
     main()

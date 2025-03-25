@@ -10,50 +10,74 @@ BASE_URL = 'https://medical.nikkeibp.co.jp'
 
 # HTMLを取得する関数
 def fetch_html(url):
-    response = requests.get(url)
-    response.raise_for_status()  # HTTPエラーがあれば例外を投げる
-    return response.text
+    try:
+        response = requests.get(url, timeout=10)  # タイムアウトを設定
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"[エラー] HTMLの取得に失敗しました: {e}")
+        return None  # 後続処理で None チェックできるようにする
 
 # 記事情報を抽出する関数
 def parse_article_info(html):
-    soup = BeautifulSoup(html, 'html.parser')
+    if html is None:
+        print("[警告] HTMLが空です。記事情報の解析をスキップします。")
+        return []
 
-    # 各要素のリストを取得
-    titles = soup.find_all('p', class_='article-list-article-title')
-    dates = soup.find_all('p', class_='article-list-date')
-    tags = soup.find_all('a', class_='article-list-tag')
-    divs = soup.find_all('div', class_='detail-inner')
+    try:
+        soup = BeautifulSoup(html, 'html.parser')
 
-    # URL情報はaタグから直接取得（divの子要素）
-    urls = []
-    for div in divs:
-        urls.append(div.find('a', recursive=False))
+        titles = soup.find_all('p', class_='article-list-article-title')
+        dates = soup.find_all('p', class_='article-list-date')
+        tags = soup.find_all('a', class_='article-list-tag')
+        divs = soup.find_all('div', class_='detail-inner')
 
-    # データをまとめてリストに格納
-    articles = []
-    for title, date, tag, url in zip(titles, dates, tags, urls):
-        article = [
-            title.text,  # タイトル
-            date.text,   # 日付
-            tag.text,    # タグ（カテゴリなど）
-            BASE_URL + url.attrs["href"]  # フルURL
-        ]
-        articles.append(article)
+        urls = [div.find('a', recursive=False) for div in divs]
 
-    return articles
+        articles = []
+        for title, date, tag, url in zip(titles, dates, tags, urls):
+            article = [
+                title.text.strip(),
+                date.text.strip(),
+                tag.text.strip(),
+                BASE_URL + url.attrs["href"]
+            ]
+            articles.append(article)
+
+        return articles
+
+    except Exception as e:
+        print(f"[エラー] HTMLの解析中に問題が発生しました: {e}")
+        return []
 
 # スプレッドシートへ保存する関数
 def save_to_spreadsheet(data, sheet_name='日経メディカル'):
-    df = pd.DataFrame(data, columns=['title', 'date', 'tag', 'url'])
-    spreadsheet = SpreadSheetModule.SpreadSheet()
-    spreadsheet.writeSpreadSheet(df, sheet_name)
+    if not data:
+        print("[情報] 保存するデータがありません。スプレッドシートへの書き込みをスキップします。")
+        return
+
+    try:
+        df = pd.DataFrame(data, columns=['title', 'date', 'tag', 'url'])
+        spreadsheet = SpreadSheetModule.SpreadSheet()
+        spreadsheet.writeSpreadSheet(df, sheet_name)
+        print(f"[成功] スプレッドシート『{sheet_name}』に保存しました。")
+    except Exception as e:
+        print(f"[エラー] スプレッドシートへの書き込みに失敗しました: {e}")
+
 
 # メイン処理
-if __name__ == '__main__':
-    html = fetch_html(URL)
-    article_data = parse_article_info(html)
-    save_to_spreadsheet(article_data)
+def main():
+    try:
+        html = fetch_html(URL)   # HTML取得
+        article_data = parse_article_info(html) # 記事情報を抽出
+        save_to_spreadsheet(article_data)  # スプレッドシートへ保存
+    except Exception as e:
+        print(f"[エラー] メイン処理中に問題が発生しました: {e}")
 
+
+# スクリプトが直接実行されたときだけmainを呼び出す
+if __name__ == '__main__':
+    main()
 
 
 # ーーーーーーーーーーーーーーーーーーーーーーーーーー
