@@ -2,7 +2,7 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import SpreadSheetModule
+import spreadSheetModule
 
 # 定数：スクレイピング対象URL
 URL = 'https://medical.nikkeibp.co.jp/inc/all/article/'
@@ -32,14 +32,18 @@ def parse_article_info(html):
         tags = soup.find_all('a', class_='article-list-tag')
         divs = soup.find_all('div', class_='detail-inner')
 
-        urls = [div.find('a', recursive=False) for div in divs]
+        # divタグの1個下の子要素であるaタグを取得し、リストにする。
+        urls = []
+        for div in divs:
+            urls.append(div.find('a', recursive=False))
 
+        # 取得したデータをリストに格納
         articles = []
         for title, date, tag, url in zip(titles, dates, tags, urls):
             article = [
-                title.text.strip(),
-                date.text.strip(),
-                tag.text.strip(),
+                title.text,
+                date.text,
+                tag.text,
                 BASE_URL + url.attrs["href"]
             ]
             articles.append(article)
@@ -58,7 +62,7 @@ def save_to_spreadsheet(data, sheet_name='日経メディカル'):
 
     try:
         df = pd.DataFrame(data, columns=['title', 'date', 'tag', 'url'])
-        spreadsheet = SpreadSheetModule.SpreadSheet()
+        spreadsheet = spreadSheetModule.SpreadSheet()
         spreadsheet.writeSpreadSheet(df, sheet_name)
         print(f"[成功] スプレッドシート『{sheet_name}』に保存しました。")
     except Exception as e:

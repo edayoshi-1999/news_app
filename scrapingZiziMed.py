@@ -2,15 +2,11 @@
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-import SpreadSheetModule
+import spreadSheetModule
 
-import requests
-from bs4 import BeautifulSoup
-import pandas as pd
-import SpreadSheetModule
 
 URL = 'https://medical.jiji.com/news/?c=medical'
-BASE_URL = 'https://medical.jiji.com/'
+BASE_URL = 'https://medical.jiji.com'
 
 def fetch_html(url):
     """指定したURLからHTMLを取得する"""
@@ -35,13 +31,18 @@ def parse_articles(html):
         titles = soup.find_all('p', class_='articleTextList__title')
         dates = soup.find_all('span', class_='articleTextList__date')
         lis = soup.find_all('li', class_='articleTextList__item')
-        urls = [li.find('a', recursive=False) for li in lis]
+        
+        # liタグの1個下の子要素であるaタグを取得し、リストにする。
+        urls = []
+        for li in lis:
+            urls.append(li.find('a', recursive=False))
 
+        # 取得したデータをリストに格納
         articles = []
         for title, date, url_tag in zip(titles, dates, urls):
             article = [
-                title.text.strip(),
-                date.text.strip(),
+                title.text,
+                date.text,
                 BASE_URL + url_tag['href']
             ]
             articles.append(article)
@@ -60,7 +61,7 @@ def save_to_spreadsheet(data, sheet_name='時事メディカル'):
 
     try:
         df = pd.DataFrame(data, columns=['title', 'date', 'url'])
-        spreadsheet = SpreadSheetModule.SpreadSheet()
+        spreadsheet = spreadSheetModule.SpreadSheet()
         spreadsheet.writeSpreadSheet(df, sheet_name)
         print(f"[成功] スプレッドシート『{sheet_name}』に保存しました。")
     except Exception as e:

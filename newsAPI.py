@@ -1,7 +1,7 @@
 import requests
 import pandas as pd
-import SpreadSheetModule
-from trasnlateByDeepl import translate_text
+import spreadSheetModule
+from translateByDeepl import Translator
 import os
 from dotenv import load_dotenv
 
@@ -63,7 +63,8 @@ def translate_titles(df):
     
     try:
         title_list = df['title'].tolist()        # タイトルをリスト化
-        translated_title = translate_text(title_list)  # タイトルを翻訳
+        translator = Translator()                # 翻訳クラスのインスタンスを生成
+        translated_title = translator.translate_text(title_list)  # タイトルを翻訳
         df['title'] = pd.DataFrame(translated_title)  # 翻訳後のタイトルをDataFrameに反映
         return df
     except Exception as e:
@@ -79,7 +80,7 @@ def save_to_spreadsheet(df):
 
     try:    
         df = df.loc[:, ['title', 'source', 'author', 'publishedAt', 'url']]  # 必要な列だけ抽出
-        sh = SpreadSheetModule.SpreadSheet()
+        sh = spreadSheetModule.SpreadSheet()
         sh.writeSpreadSheet(df, 'medical_news_English')
         print("[成功] スプレッドシート「medical_news_English」に保存しました。")
     except Exception as e:
